@@ -196,11 +196,19 @@ ClassMethod GetMailMessageParts(pPart As %Net.MIMEPart, ByRef pInitalMailPart As
         }
         $$$TOE(sc, sc)
         Set stream = ##class(%FileCharacterStream).%New()
+        Do stream.TranslateTableSet(mailPart.TextData.TranslateTable)
         $$$TOE(sc, stream.Write(raw))
         Set mailPart.TextData = stream
     }
     If (mailPart.IsBinary) {
-        Set mailPart.BinaryData = pPart.Body
+        Set raw = ""
+        While ('pPart.Body.AtEnd) {
+            Set raw = raw_pPart.Body.Read(, .sc)
+        }
+        $$$TOE(sc, sc)
+        Set stream = ##class(%FileBinaryStream).%New()
+        $$$TOE(sc, stream.Write(raw))
+        Set mailPart.BinaryData = stream
     }
     Set mailPart.InlineAttachment = contentDisposition = "inline"
     Set mailPart.Charset = pPart.GetContentTypeAttribute("CHARSET")

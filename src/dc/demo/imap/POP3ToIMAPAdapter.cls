@@ -1,5 +1,3 @@
-Include Ensemble
-
 /// An utility class to map POP3 method to the equivalent ones for IMAP,
 /// using an IMAP client
 Class dc.demo.imap.POP3ToIMAPAdapter Extends %Net.POP3
@@ -7,6 +5,27 @@ Class dc.demo.imap.POP3ToIMAPAdapter Extends %Net.POP3
 
 /// Description
 Property IMAPClient As dc.demo.imap.IMAP;
+
+Method SetRefreshToken(pValue As %String) As %Status
+{
+    Set sc = $$$OK
+    Set ..IMAPClient.RefreshToken = pValue
+    Return sc
+}
+
+Method SetClientId(pValue As %String) As %Status
+{
+    Set sc = $$$OK
+    Set ..IMAPClient.ClientId = pValue
+    Return sc
+}
+
+Method SetClientSecret(pValue As %String) As %Status
+{
+    Set sc = $$$OK
+    Set ..IMAPClient.ClientSecret = pValue
+    Return sc
+}
 
 /// Description
 Method %OnNew() As %Status [ Private ]

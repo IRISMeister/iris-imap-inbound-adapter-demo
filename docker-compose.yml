@@ -11,3 +11,14 @@ services:
       - 53773
     volumes:
       - ./:/irisdev/app
+    command:
+      --check-caps false
+    secrets:
+      - gmail_cred
+      - gmail_client_secret
+
+secrets:
+  gmail_cred:
+    file: ./gmail_cred.json
+  gmail_client_secret:
+    file: ./gmail_client_secret.json

@@ -4,19 +4,24 @@
         "Dockerfile*": "dockerfile",
         "iris.script": "objectscript"
       },
-    "objectscript.conn" :{
-      "ns": "IRISAPP",
-      "username": "_SYSTEM",
-      "password": "SYS",
-      "docker-compose": {
-        "service": "iris",
-        "internalPort": 52773
+      "intersystems.servers": {
+        "iris-mail": {
+            "webServer": {
+                "scheme": "http",
+                "host": "localhost",
+                "port": 52785
+            },
+            "username": "SuperUser"
+        }
       },
-      "active": true,
-      "links": {
-        "Production": "http://localhost:${port}/csp/irisapp/EnsPortal.ProductionConfig.zen?PRODUCTION=dc.demo.imap.IMAPProduction"
-      }
-    },
+      "objectscript.conn" :{
+        "server": "iris-mail",
+        "ns": "IRISAPP",
+        "active": true,
+        "links": {
+          "Production": "http://localhost:${port}/csp/irisapp/EnsPortal.ProductionConfig.zen?PRODUCTION=dc.demo.imap.IMAPProduction"
+        }
+      },
     "sqltools.connections": [
       {
         "namespace": "IRISAPP",

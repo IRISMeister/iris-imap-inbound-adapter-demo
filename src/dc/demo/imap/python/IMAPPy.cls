@@ -23,6 +23,18 @@ Property client As %SYS.Python;
 /// Description
 Property Helper As dc.demo.imap.IMAPHelper;
 
+Property AccessToken As %String(MAXLEN = 500);
+
+Property RefreshToken As %String(MAXLEN = 500);
+
+Property ClientId As %String(MAXLEN = 500);
+
+Property ClientSecret As %String(MAXLEN = 500);
+
+Property ExpiresIn As %Integer;
+
+Property LastRefreshedTime As %PosixTime [ InitialExpression = 0 ];
+
 Method %OnNew() As %Status [ Private ]
 {
     Set ..imaplib = ##class(%SYS.Python).Import("imaplib")
@@ -51,8 +63,25 @@ Method Connect(pServer As %String, pUserName As %String, pPassword As %String) A
         Do ..Helper.Log("[Connect] Trying to establish connection to host "_..Server_" (user: "_..UserName_")")
         Set ..client = ..imaplib."IMAP4_SSL"(..Server)
         Do ..Helper.Log("[Connect] client "_..PythonToString(..client))
-        Set resp = ..client.login(..UserName, pPassword)
-        Do ..Helper.Log("[Connect] login: "_..PythonToString(resp))
+        If ..RefreshToken="" {
+            Set resp = ..client.login(..UserName, pPassword)
+            Do ..Helper.Log("[Connect] login: "_..PythonToString(resp))
+        }
+        Else {
+            // try oAuth2. Probably, refreshing a token every interval is too much. 
+
+            Set currenttime=$NORMALIZE(##CLASS(%Library.PosixTime).CurrentTimeStamp(0)/1000000,0)    //seconds in posix
+            If (currenttime-..LastRefreshedTime+30)>..ExpiresIn {  // add 30 seconds for safety 
+                Set jsonstr=..PythonToString(..RefreshToken(..ClientId,..ClientSecret,..RefreshToken))
+                Set resp={}.%FromJSON($REPLACE(jsonstr,"'",$C(34)))
+                Set ..AccessToken=resp."access_token"
+                Set ..ExpiresIn=resp."expires_in"
+                Set ..LastRefreshedTime=currenttime
+            }
+            Set authstring=..GenerateOAuth2String(..UserName,..AccessToken)
+            ;Set resp=..client.authenticate("XOAUTH2", lambda x: authstring)        
+            Set resp=..Authenticate(..client,authstring)            
+        }
 
         Set ..Connected = 1
         Do ..Helper.Log("[Connect] Connected successfully")
@@ -62,6 +91,35 @@ Method Connect(pServer As %String, pUserName As %String, pPassword As %String) A
         Do ..Helper.Log("[Connect] Connection failed: "_ex.DisplayString())
     }
     Return sc
+}
+
+/// https://github.com/google/gmail-oauth2-tools/blob/master/python/oauth2.py
+Method RefreshToken(clientid, clientsecret, refreshtoken) [ Language = python ]
+{
+  import urllib.request
+  import urllib.parse
+  import json
+  params = {}
+  params['client_id'] = clientid
+  params['client_secret'] = clientsecret
+  params['refresh_token'] = refreshtoken
+  params['grant_type'] = 'refresh_token'
+  request_url = 'https://oauth2.googleapis.com/token'
+  print(request_url)
+
+  response = urllib.request.urlopen(request_url, urllib.parse.urlencode(params).encode('ascii')).read()
+  return json.loads(response)
+}
+
+Method GenerateOAuth2String(username, accesstoken) [ Language = python ]
+{
+  auth_string = 'user=%s\1auth=Bearer %s\1\1' % (username, accesstoken)
+  return auth_string
+}
+
+Method Authenticate(client, authstring) [ Language = python ]
+{
+  return client.authenticate("XOAUTH2", lambda x: authstring)
 }
 
 /// Description
@@ -350,9 +408,11 @@ Method CommitMarkedAsDeleted() As %Status [ Internal, Private ]
         // such number
         Set messageNumber = $Order(..MarkedAsDeleted(""), -1)
         While (messageNumber '= "") {
+	        Set sc=..GetMessageUIDArray(messageNumber,.uids), uid=uids.GetNext(""),uid=uid_""    // irismeister
             // hack to ensure that messageNumber is of type %String
             Set messageNumber = messageNumber_""
-            Set resp = ..client.store(messageNumber, "+FLAGS", "\Deleted")
+            //Set resp = ..client.store(messageNumber, "+FLAGS", "\Deleted")
+            Set resp = ..client.uid("STORE",uid, "+FLAGS", "\Deleted")   // irismeister
             Do ..Helper.Log("[CommitMarkedAsDeleted] "_..MailboxName_": "_..PythonToString(resp))
 
             Set messageNumber = $Order(..MarkedAsDeleted(messageNumber), -1)

@@ -1,0 +1,13 @@
+ROUTINE Send
+
+	Set tSendReply = ##class(dc.demo.imap.IMAPTestReplyMsg).%New()
+	Set tSendReply.Text = "[IMAP test] ("_$ZDATETIME($H)_")"  ; Subject
+	Set tSendReply.Sender =  ##class(Ens.Config.Credentials).%OpenId("mail-gmail").Username
+	Set tSendReply.Destination = tSendReply.Sender
+
+	Set tSC = ##class(Ens.Director).CreateBusinessService("EnsLib.Testing.Service",.tService)
+	Set p = ##class(EnsLib.Testing.Request).%New()
+	Set p.Target="SMTP-GMAIL"
+	Set p.Request=tSendReply
+	Set tSC = tService.ProcessInput(p,.output)
+	

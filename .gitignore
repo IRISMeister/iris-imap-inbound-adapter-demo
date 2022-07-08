@@ -1,1 +1,3 @@
 .DS_Store
+*_cred.json*
+*_client_secret.json*
