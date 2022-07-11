@@ -1,6 +1,6 @@
 # iris-imap-inbound-adapter-demo
 
-オリジナルの[InterSystems IRIS で Python を使って IMAPクライアントを実装する](https://jp.community.intersystems.com/node/512311)は、埋め込みPythonを使用してIMAPインバウンドアダプタを実装されていますが、最近メールプロバイダがあいついでoAuth2認証しか受け付けなくなってきているので、その対応をしてみました。
+オリジナルの[「InterSystems IRIS で Python を使って IMAPクライアントを実装する」](https://jp.community.intersystems.com/node/512311)は、埋め込みPythonを使用してIMAPインバウンドアダプタを実装されていますが、最近メールプロバイダがあいついでoAuth2認証しか受け付けなくなってきているので、その対応をしてみました。
 
 # 変更点
 
