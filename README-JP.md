@@ -1,15 +1,55 @@
 # iris-imap-inbound-adapter-demo
 
-IMAP(Python版), SMTPにoAuth2認証を追加。
+[オリジナル]()は、埋め込みPythonを使用してIMAPインバウンドアダプタを実装されていますが、最近メールプロバイダがあいついでoAuth2認証しか受け付けなくなってきているので、その対応をしてみました。
+
+# 変更点
+
+GMAILに対してメールの送受信を可能とするためにオリジナルに以下の修正を施しています。
+
+1. IMAP(Python版)インバウンドアダプタにoAuth2認証およびRefreshTokenによるAccessTokenの更新を追加
+2. oAuth2認証およびRefreshTokenによるAccessTokenの更新機能を持つSMTPアウトバウンドアダプタを新規作成
+3. IMAPにバイナリの添付ファイルの処理を追加
+4. メッセージ削除に、推奨APIであるclient.uid("STORE")を使用するように変更
+5. ClientIdなど、センシティブな情報をコンテナ起動時に動的に適用するように変更
+6. 日本語使用時の文字化けに対処
+
+> 5.の実現は、プロダクション([IMAPPyProduction.cls](src/dc/demo/imap/python/IMAPPyProduction.cls))起動の際に実行されるコールバックOnStart()で、準備したjsonファイルの取り込みを行っています。
+
+> zpmパッケージの内容はオリジナルのままです。
 
 # 事前準備
-[gmail_cred.template](gmail_cred.template)を参考に、gmail_cred.jsonを作成。  
-この情報は、IMAP,SMTPサーバへのアクセス時に、ユーザ名として使用します。oAuth認証時はPasswordは不要です。
+実行には、以下のパラメータの準備が必要です。
 
-[gmail_client_secret.template](gmail_client_secret.template)を参考に、gmail_client_secret.jsonを作成。  
-この情報は、IMAP,SMTPサーバへのoAuth2認証に使用します。
+|パラメータ|取得方法|設定する場所|
+|:---|:---|:---|
+|GMAILアカウント|認証対象となるGMAILアカウント。xxxx@gmail.com|gmail_cred.json|
+|ClientID|GCPで発行されるclient_id|gmail_client_secret.json|
+|ClientSecret|GCPで発行されるclient_secret|gmail_client_secret.json|
+|TokenEndPoint|GCPで発行されるtoken_uri|gmail_client_secret.json|
+|RefreshToken|下記のoauth2.py等を使用して取得|gmail_client_secret.json|
 
-ClientID, ClientSecretには、GCPのコンソールで、デスクトップクライアント用に発行したoAuth2のクライアントIDを使用しました。  
+これらの値を[gmail_client_secret.template](gmail_client_secret.template)を参考に、gmail_client_secret.jsonに設定してください。  
+
+ClientID, ClientSecret, TokenEndPointは、GCPのコンソールで、デスクトップクライアント用にoAuth2を発行した際にダウンロードできるJSONファイルから取得すると便利です。  
+
+```
+$ cat client_secret_xxxxxx.apps.googleusercontent.com.json | jq
+
+{
+  "installed": {
+    "client_id": "xxxxx.apps.googleusercontent.com",  <=ココ
+    "project_id": "iris-mail-355605",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",       <=ココ
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_secret": "yyyyy",    <=ココ
+    "redirect_uris": [
+      "http://localhost"
+    ]
+  }
+}
+```
+
 Refresh Tokenの取得には、[oauth2.py](https://github.com/google/gmail-oauth2-tools/blob/master/python/oauth2.py)を使用しました。
 
 ```
@@ -18,33 +58,45 @@ $ python2 oauth2.py --user=xxxx@gmail.com \
     --client_secret=GOCSPX-yyyyyyy  \
     --generate_oauth2_token
 
-Refresh Token: xxxxxxx
+Refresh Token: xxxxxxx    <=ココ
 Access Token: yyyyyyyyyyyyyyyy
 Access Token Expiration Seconds: 3599
 ```
+
 # 実行
-下記実行で、プロダクション起動、準備したjsonファイルの自動取り込み([IMAPPyProduction.cls](src/dc/demo/imap/python/IMAPPyProduction.cls)のOnStartを使用)を行います。
+オリジナルと同じです。
 
 ```
 docker-compose up -d
 ```
 安全策として、IMAP-GMAIL, SMTP-GMAILはいずれもdisableにしてあります。それぞれのパラメータ設定が適切に適用されていることを確認の上、有効化してください。
 
-|host item|パラメータ名||
-|:---|:---|:---|
-|IMAP-GMAIL|RefreshToken||
-|IMAP-GMAIL|ClientId||
-|IMAP-GMAIL|ClientSecret||
-|IMAP-GMAIL|認証情報||
-|SMTP-GMAIL|RefreshToken||
-|SMTP-GMAIL|ClientId||
-|SMTP-GMAIL|ClientSecret||
-|SMTP-GMAIL|TokenEndPoint||
-|SMTP-GMAIL|認証情報||
+![](img/oauth2-settings.png)
 
-最低でも、指定のアカウントに、件名に[IMAP test]を含む1通のメールが存在しないと、30秒毎にメールのチェックが走るだけで何も起こりません。下記で、そのようなメールを１通送信することが出来ます。
+|host item|パラメータ名|値|
+|:---|:---|:---|
+|IMAP-GMAIL|RefreshToken|gmail_client_secret.json設定値|
+|IMAP-GMAIL|ClientId|gmail_client_secret.json設定値|
+|IMAP-GMAIL|ClientSecret|gmail_client_secret.json設定値|
+|IMAP-GMAIL|認証情報|mail-gmail|
+|SMTP-GMAIL|RefreshToken|gmail_client_secret.json設定値|
+|SMTP-GMAIL|ClientId|gmail_client_secret.json設定値|
+|SMTP-GMAIL|ClientSecret|gmail_client_secret.json設定値|
+|SMTP-GMAIL|TokenEndPoint|gmail_client_secret.json設定値|
+|SMTP-GMAIL|認証情報|mail-gmail|
+
+30秒毎にIMAPにより件名に[IMAP test]を含むメールのチェックが実行されます。メールボックスに、同件名のメールが存在しないと、何も起こりません。
+下記で、そのようなメールを１通送信することが出来ます。
 
 ```
 docker-compose exec iris iris session iris -U IRISAPP "Send"
 ```
-以降、IMAP-GMAILサービスが30秒毎に件名に[IMAP test]を含むメールをチェックし、存在した場合、SMTP-GMAILオペレーションが自分自身に送信します。このループはプロダクションを停止するまで続行しますので、適当なタイミングで停止することをお勧めします(メールの送受信を延々と繰り返すことになります)。
+
+> もちろん、通常のメールクライアントソフトウェアを使って、送信しても構いません
+
+以降、IMAP-GMAILサービスが30秒毎に件名に[IMAP test]を含むメールをチェックし、存在した場合、SMTP-GMAILオペレーションが自分自身に送信します。
+
+> ***プロダクションを停止しない限り、メールの送受信を延々と繰り返しますので、適当なタイミングで停止してください。***
+
+![](img/gmail-messages.png)
+

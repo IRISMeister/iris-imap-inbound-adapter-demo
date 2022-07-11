@@ -6,9 +6,11 @@ ClassMethod OnStart(pTimeStarted As %String) As %Status
   Set tSC=$$$OK
   Try {
 
-    // Credentialをファイル経由で更新する。
-    // Docker Secretを使用しているため、コンテナ環境でしか機能しない。
-    // fileに実際のファイル名(yahoo_cred.json)を絶対パスで指定すれば非コンテナ環境でも使用可能。
+    #; Docker Secretを使用しているため、コンテナ環境でしか機能しない。
+    #; fileに実際のファイル名(gmail_client_secret.json)を絶対パスで指定すれば非コンテナ環境でも使用可能。
+
+#if 0
+    #; 非oAuth2の場合。
     Set file="/run/secrets/yahoo_cred"
     if ##class(%File).Exists(file) {
       Set stream = ##class(%Stream.FileCharacter).%New()
@@ -16,21 +18,17 @@ ClassMethod OnStart(pTimeStarted As %String) As %Status
       Set json = {}.%FromJSON(stream)
       Set tSC=##class(Ens.Config.Credentials).SetCredential("mail-yahoo",json.UserName,json.Password,1)
     }
+#endif
 
     #; Refresh Tokenを使ったoAuth2認証の例
-    Set file="/run/secrets/gmail_cred"
-    if ##class(%File).Exists(file) {
-      Set stream = ##class(%Stream.FileCharacter).%New()
-      Set sc = stream.LinkToFile(file)
-      Set json = {}.%FromJSON(stream)
-      Set tSC=##class(Ens.Config.Credentials).SetCredential("mail-gmail",json.UserName,"",1)
-    }
-    #; Credentialとは別にCLientId,ClientSecret,RefreshToken,TokenEndPointを取得し、プロダクションに反映する
+    #; AccountName,ClientId,ClientSecret,RefreshToken,TokenEndPointを取得し、プロダクションに反映する
     Set file="/run/secrets/gmail_client_secret"
     if ##class(%File).Exists(file) {
       Set stream = ##class(%Stream.FileCharacter).%New()
       Set sc = stream.LinkToFile(file)
       Set json = {}.%FromJSON(stream)
+
+      Set tSC=##class(Ens.Config.Credentials).SetCredential("mail-gmail",json.AccountName,"",1)
 
       k p Do ##class(Ens.Director).GetAdapterSettings("IMAP-GMAIL",.p)
       Set p("ClientId")=json."client_id"
@@ -50,7 +48,7 @@ ClassMethod OnStart(pTimeStarted As %String) As %Status
 	Catch e {
 		Set tSC=e.AsStatus()
 	}
-  //必須ではないので常に成功させる
+  //常に成功させる
 	Return $$$OK
 }
 

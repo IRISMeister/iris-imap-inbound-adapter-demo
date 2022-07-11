@@ -1,5 +1,5 @@
 ROUTINE Send
-
+	; Send one mail message via SMTP-GMAIL operation.
 	Set tSendReply = ##class(dc.demo.imap.IMAPTestReplyMsg).%New()
 	Set tSendReply.Text = "[IMAP test] ("_$ZDATETIME($H)_")"  ; Subject
 	Set tSendReply.Sender =  ##class(Ens.Config.Credentials).%OpenId("mail-gmail").Username
