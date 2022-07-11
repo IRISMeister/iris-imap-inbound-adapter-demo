@@ -26,7 +26,7 @@ GMAILに対してメールの送受信を可能とするためにオリジナル
 
 |パラメータ|取得方法|
 |:---|:---|
-|GMAILアカウント|認証対象となるGMAILアカウント。xxxx@gmail.com|
+|GMAILアカウント|認証対象となるGMAILアカウント。xxxx@gmail.com等|
 |ClientID|GCPで発行されるclient_id|
 |ClientSecret|GCPで発行されるclient_secret|
 |TokenEndPoint|GCPで発行されるtoken_uri|
