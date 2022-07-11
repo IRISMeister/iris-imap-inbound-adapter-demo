@@ -2,6 +2,8 @@
 
 オリジナルの[「InterSystems IRIS で Python を使って IMAPクライアントを実装する」](https://jp.community.intersystems.com/node/512311)は、埋め込みPythonを使用してIMAPインバウンドアダプタを実装されていますが、最近メールプロバイダがあいついでoAuth2認証しか受け付けなくなってきているので、その対応をしてみました。
 
+本稿の[GitHub](https://github.com/IRISMeister/iris-imap-inbound-adapter-demo.git)はこちらです。
+
 # 変更点
 
 GMAILに対してメールの送受信を可能とするためにオリジナルに以下の修正を施しています。
@@ -22,13 +24,13 @@ GMAILに対してメールの送受信を可能とするためにオリジナル
 # 事前準備
 実行には、以下のパラメータの準備が必要です。
 
-|パラメータ|取得方法|設定する場所|
-|:---|:---|:---|
-|GMAILアカウント|認証対象となるGMAILアカウント。xxxx@gmail.com|gmail_cred.json|
-|ClientID|GCPで発行されるclient_id|gmail_client_secret.json|
-|ClientSecret|GCPで発行されるclient_secret|gmail_client_secret.json|
-|TokenEndPoint|GCPで発行されるtoken_uri|gmail_client_secret.json|
-|RefreshToken|下記のoauth2.py等を使用して取得|gmail_client_secret.json|
+|パラメータ|取得方法|
+|:---|:---|
+|GMAILアカウント|認証対象となるGMAILアカウント。xxxx@gmail.com|
+|ClientID|GCPで発行されるclient_id|
+|ClientSecret|GCPで発行されるclient_secret|
+|TokenEndPoint|GCPで発行されるtoken_uri|
+|RefreshToken|下記のoauth2.py等を使用して取得|
 
 これらの値を[gmail_client_secret.template](gmail_client_secret.template)を参考に、gmail_client_secret.jsonに設定してください。  
 
@@ -70,14 +72,18 @@ Access Token Expiration Seconds: 3599
 
 > URLはオリジナルのままの[http://localhost:52785/csp/sys/%25CSP.Portal.Home.zen](http://localhost:52785/csp/sys/%25CSP.Portal.Home.zen)にしてあります。
 
-```
+```bash
+git clone https://github.com/IRISMeister/iris-imap-inbound-adapter-demo
+cd iris-imap-inbound-adapter-demo
+docker-compose build
 docker-compose up -d
 ```
 安全策として、IMAP-GMAIL, SMTP-GMAILはいずれもdisableにしてあります。それぞれのパラメータ設定が適切に適用されていることを確認の上、有効化してください。
 
 ![](img/oauth2-settings.png)
 
-|host item|パラメータ名|値|
+ビジネスホストの設定値
+|ビジネスホスト名|パラメータ名|値|
 |:---|:---|:---|
 |IMAP-GMAIL|RefreshToken|gmail_client_secret.json設定値|
 |IMAP-GMAIL|ClientId|gmail_client_secret.json設定値|
@@ -89,18 +95,18 @@ docker-compose up -d
 |SMTP-GMAIL|TokenEndPoint|gmail_client_secret.json設定値|
 |SMTP-GMAIL|認証情報|mail-gmail|
 
-30秒毎にIMAPにより件名に[IMAP test]を含むメールのチェックが実行されます。メールボックスに、同件名のメールが存在しないと、何も起こりません。
-下記で、そのようなメールを１通送信することが出来ます。
+
+以降、IMAP-GMAILサービスが30秒毎に件名に[IMAP test]を含むメールをチェックし、存在した場合、SMTP-GMAILオペレーションが自分自身に送信します。
+
+同件名のメールが存在しないと、何も起こりません。下記で、そのようなメールを1通送信することが出来ます。
+
+> もちろん、通常のメールクライアントソフトウェアを使って、送信しても構いません
 
 ```
 docker-compose exec iris iris session iris -U IRISAPP "Send"
 ```
 
-> もちろん、通常のメールクライアントソフトウェアを使って、送信しても構いません
-
-以降、IMAP-GMAILサービスが30秒毎に件名に[IMAP test]を含むメールをチェックし、存在した場合、SMTP-GMAILオペレーションが自分自身に送信します。
-
-> ***プロダクションを停止しない限り、メールの送受信を延々と繰り返しますので、適当なタイミングで停止してください。***
+***プロダクションを停止しない限り、メールの送受信を延々と繰り返しますので、適当なタイミングで停止してください。***
 
 ![](img/gmail-messages.png)
 
