@@ -1,6 +1,6 @@
 # iris-imap-inbound-adapter-demo
 
-[オリジナル]()は、埋め込みPythonを使用してIMAPインバウンドアダプタを実装されていますが、最近メールプロバイダがあいついでoAuth2認証しか受け付けなくなってきているので、その対応をしてみました。
+オリジナルの[InterSystems IRIS で Python を使って IMAPクライアントを実装する](https://jp.community.intersystems.com/node/512311)は、埋め込みPythonを使用してIMAPインバウンドアダプタを実装されていますが、最近メールプロバイダがあいついでoAuth2認証しか受け付けなくなってきているので、その対応をしてみました。
 
 # 変更点
 
@@ -12,6 +12,8 @@ GMAILに対してメールの送受信を可能とするためにオリジナル
 4. メッセージ削除に、推奨APIであるclient.uid("STORE")を使用するように変更
 5. ClientIdなど、センシティブな情報をコンテナ起動時に動的に適用するように変更
 6. 日本語使用時の文字化けに対処
+
+> 3.添付ファイルが存在する場合、追加設定/ファイル・パスで指定したファイルパス(既定値は/var/tmp/)上に保存します。
 
 > 5.の実現は、プロダクション([IMAPPyProduction.cls](src/dc/demo/imap/python/IMAPPyProduction.cls))起動の際に実行されるコールバックOnStart()で、準備したjsonファイルの取り込みを行っています。
 
@@ -64,7 +66,9 @@ Access Token Expiration Seconds: 3599
 ```
 
 # 実行
-オリジナルと同じです。
+オリジナルと同じで、下記コマンドを実行します。1つのビジネスサービス、1つのビジネスオペレーションを持つ簡単なプロダクションが起動します。
+
+> URLはオリジナルのままの[http://localhost:52785/csp/sys/%25CSP.Portal.Home.zen](http://localhost:52785/csp/sys/%25CSP.Portal.Home.zen)にしてあります。
 
 ```
 docker-compose up -d
