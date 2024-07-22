@@ -103,7 +103,7 @@ docker-compose up -d
 > もちろん、通常のメールクライアントソフトウェアを使って、送信しても構いません
 
 ```
-docker-compose exec iris iris session iris -U IRISAPP "Send"
+docker compose exec iris iris session iris -U IRISAPP "Send"
 ```
 
 ***プロダクションを停止しない限り、メールの送受信を延々と繰り返しますので、適当なタイミングで停止してください。***

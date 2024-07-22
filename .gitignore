@@ -1,3 +1,6 @@
 .DS_Store
 *_cred.json*
 *_client_secret.json*
+memo.txt
+python/client_secret_*.json
+python/oauth2.py
